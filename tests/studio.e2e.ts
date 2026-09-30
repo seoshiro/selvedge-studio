@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { validateProject, type Project } from "../src/model";
 const ready = async (page: Page) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Saved in this browser", { exact: true }),
   ).toBeVisible();
@@ -422,7 +422,7 @@ test("responsive locales, zoom, reduced motion, keyboard, and accessibility", as
       .locator(".hero-visual")
       .evaluate((el) => getComputedStyle(el).animationName),
   ).toBe("none");
-  await page.goto("/");
+  await page.goto("./");
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip")).toBeFocused();
   await page.keyboard.press("Enter");
