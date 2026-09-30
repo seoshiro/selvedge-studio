@@ -1,0 +1,9 @@
+export const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1100" viewBox="0 0 1000 1100"><g fill="none" stroke="#c9a575" stroke-width="3"><circle cx="500" cy="450" r="232"/><circle cx="500" cy="450" r="210"/>${Array.from(
+  { length: 48 },
+  (_, i) => {
+    const a = (i * Math.PI) / 24;
+    return `<path d="M${500 + 238 * Math.cos(a)} ${450 + 238 * Math.sin(a)}L${500 + 270 * Math.cos(a)} ${450 + 270 * Math.sin(a)}"/>`;
+  },
+).join(
+  "",
+)}<path d="M500 300C470 230 425 242 411 211M500 300C530 230 575 242 589 211"/><path fill="#c9a575" stroke="#c9a575" d="M480 325C420 228 163 192 180 395C184 460 244 487 351 494C248 510 226 611 310 659C393 700 461 595 491 494C510 595 593 700 676 655C757 609 736 510 634 494C740 487 816 460 820 395C837 192 580 228 520 325C527 405 519 467 500 521C479 465 473 405 480 325Z"/><g stroke="#343d3c" stroke-width="5"><path d="M484 402C400 299 256 276 232 366C216 426 328 440 457 454M516 402C600 299 744 276 768 366C784 426 672 440 543 454M472 475C378 491 290 554 323 594C362 640 429 574 472 475M528 475C622 491 710 554 677 594C638 640 571 574 528 475"/><path d="M250 360C330 352 405 384 465 434M750 360C670 352 595 384 535 434M347 564L460 493M653 564L540 493"/><ellipse cx="354" cy="376" rx="30" ry="22"/><ellipse cx="646" cy="376" rx="30" ry="22"/></g><path d="M342 733C420 708 581 708 658 733"/></g><g fill="#c9a575" text-anchor="middle"><text x="500" y="115" font-family="Georgia,serif" font-size="87" letter-spacing="5">AFTER HOURS</text><text x="500" y="825" font-family="Georgia,serif" font-size="66" letter-spacing="11">FIELD STUDIES</text><text x="500" y="905" font-family="sans-serif" font-size="23" letter-spacing="7">THE QUIET HAS ITS OWN WINGS</text><text x="500" y="1020" font-family="sans-serif" font-size="23" letter-spacing="8">N° 001 — EST. MMXXVI</text></g></svg>`;

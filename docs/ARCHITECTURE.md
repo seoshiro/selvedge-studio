@@ -1,0 +1,19 @@
+# Architecture
+
+React 19, TypeScript, and Vite build one static document with anchor navigation. There is no router fallback, backend, account system, telemetry, or remote artwork processing. React owns every control; the landing collection follows the current studio state rather than representing a separate fake demo.
+
+`model.ts` defines a schema-versioned project, assets, immutable collection snapshots, deterministic geometry, import reconstruction, and asset pruning. Front/back placements reference normalized raster assets. Revisions deep-copy snapshots, while assets are shared by identifier. Undo history holds up to 50 snapshots; artwork needed by undo is retained in live memory. Exported and persisted projects omit unused asset records but preserve every revision reference.
+
+`images.ts` checks source headers and dimensions before browser decoding. It accepts raster PNG/JPEG/WebP, bounds byte count and pixel count, handles EXIF-rotated dimension pairs, normalizes to PNG, limits the resulting encoding, and revokes object URLs even on errors. Import independently verifies embedded dimensions and decodability. SVG uploads and network artwork references are rejected; the only SVG artwork source is the bundled original study.
+
+`garment.ts` builds an original tee illustration with collar, seams, fold gradients, fabric pattern, and silhouette clipping. Artwork data URLs are escaped. Validated hex colors and finite placement values are the only variable drawing primitives. `TeeView.tsx` gives every garment unique SVG definition IDs.
+
+`App.tsx` owns selection, front/back side, numeric placement, one pointer transaction per drag, undo/redo, revision management, import replacement confirmation, and export busy states. The active drag captures its variant, side, pointer ID, starting snapshot, and screen scale. Other pointer endings cannot terminate it. Numeric edits cancel an active drag before committing. Touch movement is opt-in so normal page scrolling remains usable.
+
+`storage.ts` uses only `selvedge-studio-v1/projects/current`. Saves are debounced and serialized. An IndexedDB read/write transaction checks the stored version before writing. Another tab's change causes an explicit conflict, retaining current in-memory work for export rather than overwriting it. Merely opening an existing study does not write it. Save failures remain visible; the app warns before leaving while unsaved or conflicted.
+
+`export.ts` draws proof sheets from the same garment renderer and geometry used in the editor. It waits for browser fonts, preserves garment aspect ratio, measures wrapping, expands PNG height, and paginates long PDF notes. jsPDF is dynamically loaded for PDF export. Blob downloads are real browser downloads; temporary download URLs are revoked after a short grace period. Portable projects include artwork and revision history.
+
+The Content Security Policy permits local assets plus raster/blob drawing and inline styles required by React/SVG placement. Scripts and connections remain same-origin. It disallows objects and form submission. The project does not claim to isolate itself from other applications on the GitHub Pages origin. No service worker is installed, avoiding stale deployment caches and origin-wide interception.
+
+Deployment is a pinned-action GitHub workflow. Build embeds the Git HEAD SHA; the live audit compares that value with the deployed commit. CI has read-only repository access for verification and narrowly scoped Pages/ID-token permissions only for deployment.
