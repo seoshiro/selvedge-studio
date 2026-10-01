@@ -10,7 +10,8 @@ import {
   pruneAssets,
   type Asset,
 } from "../src/model";
-import { headerDimensions } from "../src/images";
+import { headerDimensions, readArtwork } from "../src/images";
+import { ARTWORK_LIMITS as L } from "../src/limits";
 const asset: Asset = {
   id: "test",
   data: "data:image/png;base64,iVBORw0KGgo=",
@@ -19,6 +20,47 @@ const asset: Asset = {
   name: "test.png",
 };
 describe("collection geometry and revision model", () => {
+  it("uses the shared normalized limits at exact import boundaries", () => {
+    const p = seed();
+    const prefix = "data:image/png;base64,";
+    p.assets = [
+      {
+        ...asset,
+        width: L.normalizedEdge,
+        height: 1,
+        data: prefix + "A".repeat(L.normalizedCharacters - prefix.length),
+      },
+    ];
+    expect(validateProject(p).assets[0].data.length).toBe(
+      L.normalizedCharacters,
+    );
+    p.assets[0].data += "A";
+    expect(() => validateProject(p)).toThrow();
+    p.assets[0] = { ...asset, width: L.normalizedEdge + 1 };
+    expect(() => validateProject(p)).toThrow();
+  });
+  it("rejects source byte and pixel overflow before attempting a browser decode", async () => {
+    await expect(readArtwork(new File([], "empty.png"))).rejects.toMatchObject({
+      code: "artworkSize",
+    });
+    await expect(
+      readArtwork(new File([new Uint8Array(L.sourceBytes + 1)], "large.png")),
+    ).rejects.toMatchObject({ code: "artworkSize" });
+    const b = new Uint8Array(32),
+      d = new DataView(b.buffer);
+    d.setUint32(0, 0x89504e47);
+    d.setUint32(4, 0x0d0a1a0a);
+    d.setUint32(16, 4001);
+    d.setUint32(20, 4000);
+    await expect(
+      readArtwork(new File([b], "pixels.png")),
+    ).rejects.toMatchObject({ code: "artworkPixels" });
+    d.setUint32(16, 8193);
+    d.setUint32(20, 1);
+    await expect(readArtwork(new File([b], "edge.png"))).rejects.toMatchObject({
+      code: "artworkPixels",
+    });
+  });
   it("rejects empty reference identifiers and aggregate asset overflow", () => {
     const p = seed();
     p.snapshot.variants[0].front.asset = "";

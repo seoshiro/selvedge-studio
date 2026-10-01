@@ -1,5 +1,23 @@
 export type Locale = "en" | "ru" | "kk";
 const en = {
+  uploadNormalization:
+    "Up to 16 MP and 8192 px per source edge. Stored at up to 2048 px; complex images may need extra resizing, which you review first.",
+  storedPixels: "Stored artwork",
+  resizeTitle: "Review resized artwork",
+  resizeBody:
+    "This file fits the 8 MB upload limit. Its PNG copy needs fewer pixels to fit a portable project. Transparency and proportions are retained; your original file stays unchanged.",
+  resizeWarning:
+    "Check the preview and resolution at your chosen print width. Use the original artwork for production with your printer.",
+  resizeAccept: "Use resized artwork",
+  artworkSize:
+    "Choose an image from 1 byte to 8 MB (8,000,000 bytes). Your current artwork is unchanged.",
+  artworkPixels:
+    "Source image exceeds 16 megapixels or 8192 pixels per edge. Resize the original image and try again.",
+  artworkFormat: "Choose a valid PNG, JPEG, or WebP raster image.",
+  artworkDecode:
+    "This image could not be decoded safely. Try re-exporting it as PNG, JPEG, or WebP. Your current artwork is unchanged.",
+  artworkComplex:
+    "This image could not fit the portable project without excessive resizing. Try a simpler or smaller image. Your current artwork is unchanged.",
   studio: "Open studio",
   collection: "Collection",
   process: "The process",
@@ -142,6 +160,25 @@ const en = {
 };
 type Dictionary = typeof en;
 const ru: Dictionary = {
+  uploadNormalization:
+    "До 16 Мп и 8192 px по каждой стороне исходника. Храним до 2048 px; сложным изображениям может понадобиться дополнительное уменьшение — сначала вы его проверите.",
+  storedPixels: "Сохранённый рисунок",
+  resizeTitle: "Проверьте уменьшенный рисунок",
+  resizeBody:
+    "Файл укладывается в лимит загрузки 8 МБ. Для переносимого проекта его PNG-копию нужно уменьшить. Прозрачность и пропорции сохраняются; исходный файл не меняется.",
+  resizeWarning:
+    "Проверьте изображение и разрешение при выбранной ширине печати. Для производства передайте типографии оригинал.",
+  resizeAccept: "Использовать уменьшенный рисунок",
+  artworkSize:
+    "Выберите изображение от 1 байта до 8 МБ (8 000 000 байт). Текущий рисунок не изменён.",
+  artworkPixels:
+    "Исходник превышает 16 мегапикселей или 8192 пикселя по стороне. Уменьшите оригинал и попробуйте снова.",
+  artworkFormat:
+    "Выберите корректное растровое изображение PNG, JPEG или WebP.",
+  artworkDecode:
+    "Не удалось безопасно прочитать изображение. Сохраните его заново в PNG, JPEG или WebP. Текущий рисунок не изменён.",
+  artworkComplex:
+    "Изображение не помещается в переносимый проект без чрезмерного уменьшения. Попробуйте более простой или меньший рисунок. Текущий рисунок не изменён.",
   studio: "Открыть студию",
   collection: "Коллекция",
   process: "Процесс",
@@ -281,6 +318,24 @@ const ru: Dictionary = {
   thumbnail: "Выбрать цвет",
 };
 const kk: Dictionary = {
+  uploadNormalization:
+    "Түпнұсқа: 16 Мп және әр қыры 8192 px дейін. 2048 px дейін сақталады; күрделі суретті қосымша кішірейту қажет болса, алдымен оны тексересіз.",
+  storedPixels: "Сақталған сурет",
+  resizeTitle: "Кішірейтілген суретті тексеріңіз",
+  resizeBody:
+    "Файл 8 МБ жүктеу шегіне сай. Тасымалданатын жобаға сыюы үшін оның PNG көшірмесін кішірейту керек. Мөлдірлік пен пропорциялар сақталады; түпнұсқа файл өзгермейді.",
+  resizeWarning:
+    "Таңдалған баспа еніндегі сурет пен ажыратымдылықты тексеріңіз. Өндіріске түпнұсқа суретті баспаханаға беріңіз.",
+  resizeAccept: "Кішірейтілген суретті қолдану",
+  artworkSize:
+    "1 байттан 8 МБ дейінгі (8 000 000 байт) суретті таңдаңыз. Қазіргі сурет өзгерген жоқ.",
+  artworkPixels:
+    "Түпнұсқа 16 мегапиксельден немесе бір қыры 8192 пиксельден асады. Түпнұсқаны кішірейтіп, қайталап көріңіз.",
+  artworkFormat: "Дұрыс PNG, JPEG немесе WebP растрлық суретін таңдаңыз.",
+  artworkDecode:
+    "Суретті қауіпсіз оқу мүмкін болмады. Оны PNG, JPEG немесе WebP түрінде қайта сақтаңыз. Қазіргі сурет өзгерген жоқ.",
+  artworkComplex:
+    "Сурет тым қатты кішірейтусіз тасымалданатын жобаға сыймайды. Қарапайымырақ не кішірек суретті қолданыңыз. Қазіргі сурет өзгерген жоқ.",
   studio: "Студияны ашу",
   collection: "Коллекция",
   process: "Жұмыс барысы",

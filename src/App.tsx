@@ -41,7 +41,14 @@ import {
   type Side,
   type Snapshot,
 } from "./model";
-import { sampleAsset, readArtwork, verifyAssets } from "./images";
+import {
+  sampleAsset,
+  readArtwork,
+  verifyAssets,
+  ArtworkError,
+  type ArtworkUpload,
+} from "./images";
+import { ARTWORK_LIMITS } from "./limits";
 import { readStored, writeStored } from "./storage";
 import { dictionaries, type Locale } from "./i18n";
 import { exportPDF, exportPNG, exportProject } from "./export";
@@ -123,7 +130,10 @@ export function App() {
     [revisionName, setRevisionName] = useState(""),
     [compare, setCompare] = useState<Revision | null>(null),
     [showPrivacy, setShowPrivacy] = useState(false),
-    [pending, setPending] = useState<Project | null>(null);
+    [pending, setPending] = useState<Project | null>(null),
+    [pendingArtwork, setPendingArtwork] = useState<
+      (ArtworkUpload & { target: string; side: Side }) | null
+    >(null);
   const [history, setHistory] = useState<{
       past: Snapshot[];
       future: Snapshot[];
@@ -334,7 +344,13 @@ export function App() {
     try {
       await work();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(
+        e instanceof ArtworkError
+          ? t[e.code]
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -343,34 +359,52 @@ export function App() {
   async function upload(file?: File) {
     if (!file) return;
     await run(async () => {
-      if (pRef.current.assets.length >= 16) throw new Error(t.assetLimit);
+      if (pRef.current.assets.length >= ARTWORK_LIMITS.assets)
+        throw new Error(t.assetLimit);
       const target = v.id,
         targetSide = side,
-        asset = await readArtwork(file);
-      if (
-        pRef.current.assets.reduce(
-          (total, item) => total + item.data.length,
-          asset.data.length,
-        ) > 20_000_000
-      )
-        throw new Error(t.assetLimit);
-      hist({
-        past: [...historyRef.current.past, pRef.current.snapshot].slice(-50),
-        future: [],
-      });
-      replace({
-        ...pRef.current,
-        assets: [...pRef.current.assets, asset],
-        snapshot: applyPlacement(pRef.current.snapshot, target, targetSide, {
-          asset: asset.id,
-        }),
-      });
+        upload = await readArtwork(file);
+      assertArtworkCapacity(upload.asset);
+      if (upload.reducedToFit) {
+        setPendingArtwork({ ...upload, target, side: targetSide });
+      } else {
+        acceptArtwork(upload.asset, target, targetSide);
+      }
     });
+  }
+  function assertArtworkCapacity(asset: ArtworkUpload["asset"]) {
+    if (
+      pRef.current.assets.length >= ARTWORK_LIMITS.assets ||
+      pRef.current.assets.reduce(
+        (total, item) => total + item.data.length,
+        asset.data.length,
+      ) > ARTWORK_LIMITS.totalCharacters
+    )
+      throw new Error(t.assetLimit);
+  }
+  function acceptArtwork(
+    asset: ArtworkUpload["asset"],
+    target: string,
+    targetSide: Side,
+  ) {
+    assertArtworkCapacity(asset);
+    hist({
+      past: [...historyRef.current.past, pRef.current.snapshot].slice(-50),
+      future: [],
+    });
+    replace({
+      ...pRef.current,
+      assets: [...pRef.current.assets, asset],
+      snapshot: applyPlacement(pRef.current.snapshot, target, targetSide, {
+        asset: asset.id,
+      }),
+    });
+    setNotice(`${t.storedPixels}: ${asset.width} × ${asset.height} px`);
   }
   async function importFile(file?: File) {
     if (!file) return;
     await run(async () => {
-      if (file.size > 24_000_000) throw new Error(t.importHelp);
+      if (file.size > ARTWORK_LIMITS.importBytes) throw new Error(t.importHelp);
       const next = validateProject(JSON.parse(await file.text()));
       await verifyAssets(next.assets);
       setPending(next);
@@ -715,6 +749,7 @@ export function App() {
                 <strong>{busy ? t.working : t.upload}</strong>
                 <small>{t.uploadHelp}</small>
               </button>
+              <p className="fine-print">{t.uploadNormalization}</p>
               <input
                 ref={artInput}
                 className="sr-only"
@@ -803,6 +838,12 @@ export function App() {
               </div>
               {a && (
                 <div className="raster-info">
+                  <span>
+                    {t.storedPixels}
+                    <b>
+                      {a.width} × {a.height} px
+                    </b>
+                  </span>
                   <span>
                     {t.actualHeight}
                     <b>
@@ -1338,6 +1379,58 @@ export function App() {
               <ArrowRight size={16} />
             </button>
             <button className="text-button" onClick={() => setPending(null)}>
+              {t.cancel}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {pendingArtwork && (
+        <Modal title={t.resizeTitle} onClose={() => setPendingArtwork(null)}>
+          <p className="eyebrow">SELVEDGE / ARTWORK</p>
+          <h2>{t.resizeTitle}</h2>
+          <p className="modal-desc">{t.resizeBody}</p>
+          <img
+            className="artwork-preview"
+            src={pendingArtwork.asset.data}
+            alt={pendingArtwork.asset.name}
+          />
+          <p className="modal-desc">
+            {pendingArtwork.sourceWidth} × {pendingArtwork.sourceHeight} px →{" "}
+            {pendingArtwork.asset.width} × {pendingArtwork.asset.height} px
+          </p>
+          <p className="modal-desc">
+            {t.raster}:{" "}
+            {dpi(
+              p.snapshot.variants.find(
+                (item) => item.id === pendingArtwork.target,
+              )?.[pendingArtwork.side] ?? v[side],
+              pendingArtwork.asset,
+            )}{" "}
+            DPI
+          </p>
+          <p className="fine-print">{t.resizeWarning}</p>
+          <div className="dialog-actions">
+            <button
+              className="button dark"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  acceptArtwork(
+                    pendingArtwork.asset,
+                    pendingArtwork.target,
+                    pendingArtwork.side,
+                  );
+                  setPendingArtwork(null);
+                })
+              }
+            >
+              {t.resizeAccept}
+              <Check size={16} />
+            </button>
+            <button
+              className="text-button"
+              onClick={() => setPendingArtwork(null)}
+            >
               {t.cancel}
             </button>
           </div>

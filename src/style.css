@@ -2199,3 +2199,13 @@ dialog::backdrop {
     transform: none !important;
   }
 }
+.artwork-preview {
+  display: block;
+  width: 100%;
+  height: min(28vh, 260px);
+  object-fit: contain;
+  background: repeating-conic-gradient(#e5e1d8 0% 25%, #f8f5ee 0% 50%) 0 / 16px
+    16px;
+  border: 1px solid var(--line);
+  margin: 1rem 0;
+}

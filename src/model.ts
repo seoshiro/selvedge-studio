@@ -1,3 +1,4 @@
+import { ARTWORK_LIMITS } from "./limits";
 export type Side = "front" | "back";
 export type Placement = {
   x: number;
@@ -120,23 +121,27 @@ export function validateProject(value: unknown): Project {
   const root = obj(value);
   if (root.schema !== 1) fail();
   let total = 0;
-  const assets: Asset[] = list(root.assets, 16).map((value) => {
-    const a = obj(value),
-      data = str(a.data, 3_000_000);
-    total += data.length;
-    if (
-      !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(data) ||
-      total > 20_000_000
-    )
-      fail();
-    return {
-      id: identifier(a.id),
-      data,
-      width: num(a.width, 1, 2048),
-      height: num(a.height, 1, 2048),
-      name: str(a.name, 120),
-    };
-  });
+  const assets: Asset[] = list(root.assets, ARTWORK_LIMITS.assets).map(
+    (value) => {
+      const a = obj(value),
+        data = str(a.data, ARTWORK_LIMITS.normalizedCharacters);
+      total += data.length;
+      if (
+        !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(
+          data,
+        ) ||
+        total > ARTWORK_LIMITS.totalCharacters
+      )
+        fail();
+      return {
+        id: identifier(a.id),
+        data,
+        width: num(a.width, 1, ARTWORK_LIMITS.normalizedEdge),
+        height: num(a.height, 1, ARTWORK_LIMITS.normalizedEdge),
+        name: str(a.name, 120),
+      };
+    },
+  );
   const ids = new Set(assets.map((a) => a.id));
   if (ids.size !== assets.length) fail();
   const parsePlacement = (value: unknown): Placement => {

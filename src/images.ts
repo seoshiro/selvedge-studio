@@ -1,5 +1,24 @@
 import type { Asset } from "./model";
 import { sampleSvg } from "./art";
+import { ARTWORK_LIMITS as L } from "./limits";
+export type ArtworkErrorCode =
+  | "artworkSize"
+  | "artworkPixels"
+  | "artworkFormat"
+  | "artworkDecode"
+  | "artworkComplex";
+export class ArtworkError extends Error {
+  constructor(public code: ArtworkErrorCode) {
+    super(code);
+    this.name = "ArtworkError";
+  }
+}
+export type ArtworkUpload = {
+  asset: Asset;
+  sourceWidth: number;
+  sourceHeight: number;
+  reducedToFit: boolean;
+};
 export const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const i = new Image();
@@ -75,40 +94,82 @@ export function headerDimensions(bytes: Uint8Array): [number, number] {
   }
   throw new Error("Choose a valid PNG, JPEG, or WebP raster image.");
 }
-export async function readArtwork(file: File): Promise<Asset> {
-  if (file.size > 8_000_000 || !file.size)
-    throw new Error("Image must be between 1 byte and 8 MB.");
-  const bytes = new Uint8Array(await file.arrayBuffer()),
-    [w, h] = headerDimensions(bytes);
-  if (!w || !h || w > 8192 || h > 8192 || w * h > 16_000_000)
-    throw new Error(
-      "Image is too large. Maximum 16 megapixels and 8192 pixels per edge.",
-    );
+export async function readArtwork(file: File): Promise<ArtworkUpload> {
+  if (file.size > L.sourceBytes || !file.size)
+    throw new ArtworkError("artworkSize");
+  let w: number, h: number;
+  try {
+    [w, h] = headerDimensions(new Uint8Array(await file.arrayBuffer()));
+  } catch {
+    throw new ArtworkError("artworkFormat");
+  }
+  if (
+    !w ||
+    !h ||
+    w > L.sourceEdge ||
+    h > L.sourceEdge ||
+    w * h > L.sourcePixels
+  )
+    throw new ArtworkError("artworkPixels");
   const url = URL.createObjectURL(file);
   try {
-    const i = await loadImage(url),
-      scale = Math.min(1, 2048 / Math.max(i.naturalWidth, i.naturalHeight));
+    const i = await loadImage(url);
     if (
       !(i.naturalWidth === w && i.naturalHeight === h) &&
       !(i.naturalWidth === h && i.naturalHeight === w)
     )
-      throw new Error("Decoded image does not match its header.");
+      throw new ArtworkError("artworkDecode");
     const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(i.naturalWidth * scale));
-    c.height = Math.max(1, Math.round(i.naturalHeight * scale));
-    c.getContext("2d")!.drawImage(i, 0, 0, c.width, c.height);
-    const data = c.toDataURL("image/png");
-    if (data.length > 3_000_000)
-      throw new Error(
-        "Artwork is too complex. Try a smaller image (normalized artwork limit: 2 MB).",
-      );
-    return {
-      id: crypto.randomUUID(),
-      name: file.name.slice(0, 120),
-      width: c.width,
-      height: c.height,
-      data,
-    };
+    const originalEdge = Math.max(i.naturalWidth, i.naturalHeight);
+    let edge = Math.min(originalEdge, L.normalizedEdge);
+    const minimumEdge = Math.min(edge, L.minimumAdaptiveEdge);
+    for (let attempt = 0; attempt < L.normalizationAttempts; attempt++) {
+      const scale = edge / originalEdge;
+      c.width = Math.max(1, Math.round(i.naturalWidth * scale));
+      c.height = Math.max(1, Math.round(i.naturalHeight * scale));
+      const context = c.getContext("2d");
+      if (!context) throw new ArtworkError("artworkDecode");
+      context.imageSmoothingQuality = "high";
+      // Canvas dimensions reset pixels and alpha. Every pass samples the
+      // original decoded image, never an already downsampled intermediate.
+      context.drawImage(i, 0, 0, c.width, c.height);
+      const data = c.toDataURL("image/png");
+      if (!data.startsWith("data:image/png;base64,"))
+        throw new ArtworkError("artworkDecode");
+      if (data.length <= L.normalizedCharacters)
+        return {
+          asset: {
+            id: crypto.randomUUID(),
+            name: file.name.slice(0, 120),
+            width: c.width,
+            height: c.height,
+            data,
+          },
+          sourceWidth: i.naturalWidth,
+          sourceHeight: i.naturalHeight,
+          reducedToFit: attempt > 0,
+        };
+      if (edge <= minimumEdge) break;
+      edge =
+        attempt === L.normalizationAttempts - 2
+          ? minimumEdge
+          : Math.max(
+              minimumEdge,
+              Math.floor(
+                edge *
+                  Math.min(
+                    0.95,
+                    Math.sqrt(L.normalizedCharacters / data.length) * 0.96,
+                  ),
+              ),
+            );
+      // Allow the UI to paint its busy state between bounded encoding passes.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    throw new ArtworkError("artworkComplex");
+  } catch (e) {
+    if (e instanceof ArtworkError) throw e;
+    throw new ArtworkError("artworkDecode");
   } finally {
     URL.revokeObjectURL(url);
   }

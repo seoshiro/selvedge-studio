@@ -2,11 +2,19 @@
 
 The release is gated on lint, strict TypeScript, a clean production build, unit tests, and isolated browser tests.
 
-Final local result: **8 unit tests and 8 browser tests passed**, lint and strict TypeScript passed, and the production build passed. The complete browser suite took about 37 seconds on installed Chrome. Automated WCAG A/AA checks reported **zero violations** in the checked interface. An independent temporary-directory install passed `npm ci --ignore-scripts`, lint, typecheck, unit tests, build, and `npm audit --audit-level=high`; npm reported zero vulnerabilities.
+Upload-correction local result: **10 unit tests and 11 browser tests passed**, lint and strict TypeScript passed, and the production build passed. The complete browser suite took about 76 seconds on installed Chrome. Automated WCAG A/AA checks reported **zero violations** in the checked interface, including the new resize-review dialog. The original release also passed an independent temporary-directory `npm ci --ignore-scripts`, lint, typecheck, unit tests, build, and `npm audit --audit-level=high`; npm reported zero vulnerabilities. The correction adds no dependencies.
 
 The [public verification/deployment workflow](https://github.com/seoshiro/selvedge-studio/actions/workflows/publish.yml) repeats the checks on a fresh Linux runner before deployment. `release.json` and the footer's `data-commit` identify the served source commit. The publication handoff includes the exact commit, successful CI run, and a subsequent real golden-path audit against the public URL.
 
 ## Source review
+
+### Upload correction (2026-10-01)
+
+Valid source JPEG/WebP files could expand beyond the fixed stored-PNG cap and show an inaccurate, English-only “2 MB” error despite meeting the advertised 8 MB source limit. Normalization now makes bounded adaptive passes from the original decoded image, preserving alpha and aspect ratio. All extra resizing requires review of a preview, final pixel dimensions, and DPI. Cancellation and failure preserve the current project; aggregate capacity is checked before review and again before mutation. Upload errors and normalization guidance are available in EN/RU/KK. Shared constants keep normalized uploads compatible with portable imports. Stored project schema and storage namespace are unchanged.
+
+New regressions generate deterministic high-entropy JPEG/WebP (about 5.6–5.8 MB source) and translucent PNG (about 6.2 MB source). Each fixture demonstrably exceeds the previous normalized cap. Tests cover accepted review, cancellation, retained transparent/partial-alpha pixels, proportional dimensions, accurate DPI, revision retention, actual PNG/PDF/JSON downloads, local save/reload, and exact import/reload. Boundary checks cover exactly 8,000,000 source bytes and 16 MP, source overflows, malformed/undecodable files, normalized import limits, and failed-import preservation. The review is checked at 360 px in Kazakh and with automated accessibility checks. These are synthetic test images, not the user's original failing artwork.
+
+### Original release review
 
 A separate gpt-6.1-sol agent with xhigh reasoning performed a read-only architecture/security/correctness review. Confirmed findings fixed before release:
 
